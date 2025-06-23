@@ -9,6 +9,14 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Get real user (not root)
+REAL_USER=${SUDO_USER:-$USER}
+if [ "$REAL_USER" = "root" ]; then
+    echo "Error: Cannot determine the actual user"
+    exit 1
+fi
+REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
+
 # Help message
 print_usage() {
     echo "Usage:"
@@ -58,11 +66,12 @@ REMOTE_BASE_URL="https://github.com/fe1fan/matrix-preview/releases/download/prev
 VERSION="latest"  # TODO: Replace with version handling logic if needed
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/matrix"
-USER_CONFIG_DIR="$HOME/.config/matrix"
+USER_CONFIG_DIR="${REAL_HOME}/.config/matrix"
 
 # Create necessary directories
 mkdir -p "${CONFIG_DIR}"
 mkdir -p "${USER_CONFIG_DIR}"
+chown -R "${REAL_USER}:${REAL_USER}" "${USER_CONFIG_DIR}"
 
 install_server() {
     echo "Installing Matrix Server..."
@@ -80,7 +89,7 @@ After=network.target
 Type=simple
 ExecStart=${INSTALL_DIR}/matrix-server
 Restart=always
-User=$(whoami)
+User=${REAL_USER}
 Environment=CONFIG_DIR=${CONFIG_DIR}
 
 [Install]
@@ -119,7 +128,7 @@ After=network.target
 Type=simple
 ExecStart=${INSTALL_DIR}/matrix-monitor
 Restart=always
-User=$(whoami)
+User=${REAL_USER}
 Environment=CONFIG_DIR=${CONFIG_DIR}
 
 [Install]
@@ -144,6 +153,12 @@ case ${COMPONENT} in
         install_monitor
         ;;
 esac
+
+# Copy configuration files if they exist in the current directory
+if [ -d "./settings_json" ]; then
+    cp -r ./settings_json/* "${CONFIG_DIR}/"
+    cp -r ./settings_json/* "${USER_CONFIG_DIR}/"
+fi
 
 echo "Installation completed successfully!"
 echo "Matrix Server and Monitor have been installed and services are running."
