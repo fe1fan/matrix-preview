@@ -65,11 +65,9 @@ esac
 REMOTE_BASE_URL="https://github.com/fe1fan/matrix-preview/releases/download/preview/"  # TODO: Replace with actual URL
 VERSION="latest"  # TODO: Replace with version handling logic if needed
 INSTALL_DIR="/usr/local/bin"
-CONFIG_DIR="/etc/matrix"
 USER_CONFIG_DIR="${REAL_HOME}/.config/matrix"
 
 # Create necessary directories
-mkdir -p "${CONFIG_DIR}"
 mkdir -p "${USER_CONFIG_DIR}"
 chown -R "${REAL_USER}:${REAL_USER}" "${USER_CONFIG_DIR}"
 
@@ -78,6 +76,7 @@ install_server() {
     # Download and install binary
     curl -L "${REMOTE_BASE_URL}/matrix-server-${ARCH}" -o "${INSTALL_DIR}/matrix-server"
     chmod +x "${INSTALL_DIR}/matrix-server"
+    mkdir -p "${USER_CONFIG_DIR}/server"
 
     # Create systemd service
     cat > /etc/systemd/system/matrix-server.service << EOF
@@ -90,7 +89,7 @@ Type=simple
 ExecStart=${INSTALL_DIR}/matrix-server
 Restart=always
 User=${REAL_USER}
-Environment=CONFIG_DIR=${CONFIG_DIR}
+Environment=USER_CONFIG_DIR=${USER_CONFIG_DIR}
 
 [Install]
 WantedBy=multi-user.target
@@ -111,8 +110,8 @@ install_monitor() {
     chmod +x "${INSTALL_DIR}/matrix-monitor"
 
     # Create monitor config with url
-    mkdir -p "${CONFIG_DIR}/monitor"
-    cat > "${CONFIG_DIR}/monitor/config.json" << EOF
+    mkdir -p "${USER_CONFIG_DIR}/monitor"
+    cat > "${USER_CONFIG_DIR}/monitor/config.json" << EOF
 {
     "url": "${URL}"
 }
@@ -129,7 +128,7 @@ Type=simple
 ExecStart=${INSTALL_DIR}/matrix-monitor
 Restart=always
 User=${REAL_USER}
-Environment=CONFIG_DIR=${CONFIG_DIR}
+Environment=USER_CONFIG_DIR=${USER_CONFIG_DIR}
 
 [Install]
 WantedBy=multi-user.target
@@ -141,7 +140,7 @@ EOF
     systemctl start matrix-monitor.service
 
     echo "Matrix Monitor has been installed and service is running."
-    echo "Monitor configuration is located at ${CONFIG_DIR}/monitor/config.json"
+    echo "Monitor configuration is located at ${USER_CONFIG_DIR}/monitor/config.json"
 }
 
 # Install selected component
@@ -154,12 +153,6 @@ case ${COMPONENT} in
         ;;
 esac
 
-# Copy configuration files if they exist in the current directory
-if [ -d "./settings_json" ]; then
-    cp -r ./settings_json/* "${CONFIG_DIR}/"
-    cp -r ./settings_json/* "${USER_CONFIG_DIR}/"
-fi
-
 echo "Installation completed successfully!"
 echo "Matrix Server and Monitor have been installed and services are running."
-echo "Configuration files are located in ${CONFIG_DIR} and ${USER_CONFIG_DIR}"
+echo "Configuration files are located in ${USER_CONFIG_DIR}"
