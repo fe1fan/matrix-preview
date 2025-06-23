@@ -37,7 +37,6 @@ esac
 
 # Configuration
 INSTALL_DIR="/usr/local/bin"
-CONFIG_DIR="/etc/matrix"
 USER_CONFIG_DIR="${REAL_HOME}/.config/matrix"
 
 uninstall_server() {
@@ -58,7 +57,6 @@ uninstall_server() {
     rm -f "${INSTALL_DIR}/matrix-server"
 
     # Clean up server specific config if exists
-    rm -rf "${CONFIG_DIR}/server"
     rm -rf "${USER_CONFIG_DIR}/server"
 
     echo "Matrix Server has been uninstalled."
@@ -80,7 +78,6 @@ uninstall_monitor() {
 
     # Remove binary and config
     rm -f "${INSTALL_DIR}/matrix-monitor"
-    rm -rf "${CONFIG_DIR}/monitor"
     rm -rf "${USER_CONFIG_DIR}/monitor"
 
     echo "Matrix Monitor has been uninstalled."
@@ -100,7 +97,6 @@ esac
 systemctl daemon-reload
 
 # Clean up parent directories if empty
-rmdir "${CONFIG_DIR}" 2>/dev/null || true
 rmdir "${USER_CONFIG_DIR}" 2>/dev/null || true
 rmdir "$(dirname "${USER_CONFIG_DIR}")" 2>/dev/null || true
 
